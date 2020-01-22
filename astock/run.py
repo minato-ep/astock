@@ -22,6 +22,7 @@ def argsToConfig():
 
 def main():
     argsToConfig()
+    analyzeCsv.analyze('/home/minato/stockData/type17_1')
 
 
 if __name__ == '__main__':
