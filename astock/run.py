@@ -1,5 +1,3 @@
-
-
 import argparse
 import config
 import getStock

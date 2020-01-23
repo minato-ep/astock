@@ -1,3 +1,4 @@
+import warnings
 from os.path import dirname, abspath, join, isdir, split, isfile
 from os import makedirs
 import sys
@@ -7,6 +8,7 @@ from logging.handlers import RotatingFileHandler
 DEFAULTCONFIG = {
     "debug": False
 }
+warnings.simplefilter('ignore')
 
 
 class Config():

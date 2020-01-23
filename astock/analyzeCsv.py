@@ -14,7 +14,11 @@ CONFIG = config.CONFIG
 
 def analyze(path):
     start = time.time()
-
+    # Prepare Output Dir
+    if not os.path.exists(os.path.join(path, 'analyse')):
+        os.mkdir(os.path.join(path, 'analyse'))
+    if not os.path.exists(os.path.join(path, 'analyse', 'irregular')):
+        os.mkdir(os.path.join(path, 'analyse', 'irregular'))
     # Prepare DateList
     dateList = []
     # s = '2000/04/01'
@@ -26,8 +30,8 @@ def analyze(path):
     for i in range(diff):
         dateList.append((sD + timedelta(i)).strftime("%Y-%m-%d"))
     countList = [0] * len(dateList)
-    dateDf = pd.Series(countList, index=dateList)
-    dataSumDf = copy.copy(dateDf)
+    countSr = pd.Series(countList, index=dateList)
+    sumSr = copy.copy(countSr)
     print('Prepared: ', round(time.time()-start, 2), ' sec')
 
     # Process csv data
@@ -37,8 +41,7 @@ def analyze(path):
     for file in csvFileList:
         # Prepare Data
         devidedFlag = False
-        csvData = pd.read_csv(file).drop(
-            ['High', 'Low', 'Close', 'Volume'], axis=1)
+        csvData = pd.read_csv(file, usecols=('Date', 'Open'))
         csvNp = csvData.values
         # Detect Stock Division
         diff = np.diff(csvNp[:, 1])
@@ -46,38 +49,56 @@ def analyze(path):
         ratio = diff/csvNp[:, 1]
         csvNp = np.hstack((csvNp, ratio.reshape(ratio.shape[0], 1)))
         for row in csvNp:
-            if row[2] <= -0.90:
+            if abs(row[2]) >= 0.90:
                 name = os.path.splitext(os.path.basename(file))[0]
-                devidedInfo.append((name, row[0], row[1], row[2]))
+                devidedInfo.append(
+                    {'id': name, 'date': row[0],
+                     'value': row[1], 'ratio': row[2]})
+                plt.figure()
+                csvData.plot(x='Date')
+                plt.title(row[0])
+                plt.savefig(os.path.join(path, 'analyse',
+                                         'irregular', name+'_'+row[0]+'.jpg'))
                 devidedFlag = True
         if devidedFlag:
+            pbar.update(1)
             continue
         # Get sum and count /day
         for val in csvNp:
-            dateDf[val[0]] += 1
-            dataSumDf[val[0]] += val[1]
+            countSr[val[0]] += 1
+            sumSr[val[0]] += val[1]
         pbar.update(1)
     pbar.close()
     print('Process: ', round(time.time()-start, 2), ' sec')
 
     # Finalize the result
-    if len(devidedInfo) != 0:
-        print(json.dumps(devidedInfo, indent=2))
 
+    irregular = len(devidedInfo)
+    if irregular != 0:
+        pass
+        print('Detected stock division. N=', irregular)
+    print('Prcessed data: {}/{}'.format(len(csvFileList)-irregular,
+                                        len(csvFileList)))
     # remove the market off day
-    dataNumListNp = dateDf[dateDf != 0].values
-    dataMeanListNp = dataSumDf[dataSumDf != 0].values
-
-    # TODO make market off day removed df and use the columns to make dfS as index
+    countSr = countSr[countSr != 0]
+    countNp = countSr[countSr != 0].values
+    sumNp = sumSr[sumSr != 0].values
 
     # calc mean
-    s = dataMeanListNp/dataNumListNp
-    dfS = pd.Series(s, index=dateDf)
-    os.mkdir(os.path.join(path, 'analyse'))
-    dfS.to_csv(os.path.join(path, 'analyse', 'result.csv'), index=False)
-    with open(os.path.join(path, 'analyse', 'devidedStock.json'), mode='w') as f:
-        f.write(json.dumps(devidedInfo, indent=2))
+    meanNp = sumNp/countNp
+    dfS = round(pd.Series(meanNp, index=countSr.index), 4)
+
+    dfS.to_csv(os.path.join(path, 'analyse', 'result.csv'))
+    with open(os.path.join(path, 'analyse', 'report.json'), mode='w') as f:
+        report = {'total': len(csvFileList),
+                  'processed': len(csvFileList)-irregular,
+                  'irregular': devidedInfo}
+        f.write(json.dumps(report, indent=2))
     print('ALL_TIME: ', round(time.time()-start, 2), ' sec')
-    # plt.figure()
-    # dfS.plot()
-    # plt.show()
+    plt.figure(figsize=(16, 9), dpi=200)
+    dfS.plot(x=dfS.index)
+    #plt.plot(419, 1000, marker='|', color="red", markersize=200)
+    plt.plot([419, 419], [1, 5000], "red", linestyle='dashed')
+    title = os.path.splitext(os.path.basename(path))[0]
+    plt.title('title')
+    plt.savefig(os.path.join(path, 'analyse', title+'.jpg'))
