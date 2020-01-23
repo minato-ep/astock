@@ -95,10 +95,14 @@ def analyze(path):
                   'irregular': devidedInfo}
         f.write(json.dumps(report, indent=2))
     print('ALL_TIME: ', round(time.time()-start, 2), ' sec')
-    plt.figure(figsize=(16, 9), dpi=200)
+    plt.figure(figsize=(16, 9), dpi=200, tight_layout=True)
     dfS.plot(x=dfS.index)
-    #plt.plot(419, 1000, marker='|', color="red", markersize=200)
-    plt.plot([419, 419], [1, 5000], "red", linestyle='dashed')
+    if '2008-09-16' in dfS.index:
+        theDay = dfS.index.get_loc('2008-09-16')
+        plt.plot([theDay, theDay], [1, dfS.max()], "red", linestyle='dashed')
+    elif '2008-09-17' in dfS.index:
+        theDay = dfS.index.get_loc('2008-09-16')
+        plt.plot([theDay, theDay], [1, dfS.max()], "red", linestyle='dashed')
     title = os.path.splitext(os.path.basename(path))[0]
     plt.title('title')
     plt.savefig(os.path.join(path, 'analyse', title+'.jpg'))

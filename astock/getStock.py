@@ -3,12 +3,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import json
-from os.path import join
+from os.path import join, exists
+from os import mkdir
 import tqdm
 import config
 import time
 CONFIG = config.CONFIG
-
+gType17 = None
 # QUANDL ##### DATA IS LIMITED ~2017
 # API DOCUMENT
 # https://docs.quandl.com/docs/parameters-2
@@ -22,7 +23,7 @@ CONFIG = config.CONFIG
 # Get Data
 
 
-def getData(brandNp):
+def getData(brandNp, type17):
     # Prepare
     number = brandNp.shape[0]
     estTime = [number*2, 'sec']
@@ -38,16 +39,24 @@ def getData(brandNp):
     print('Num : {}'.format(number))
     print('Time: {} {}'.format(estTime[0], estTime[1]))
     print('Size: {}~{} {}'.format(estSize[0], estSize[1], estSize[2]))
-    yn = input('\nAre you sure? (y/n): ')
-    exit() if yn != 'y' else print('')
+    # yn = input('\nAre you sure? (y/n): ')
+    # exit() if yn != 'y' else print('')
     pbar = tqdm.tqdm(total=number)
 
     for row in brandNp:
-        data = QD.get("TSE/"+str(row[0]),
-                      start_date="2000-04-01",
-                      end_date="2018-04-02")
-        data.to_csv(join(CONFIG.outputDir, str(row[0])+'.csv'))
-        pbar.update(1)
+        try:
+            data = QD.get("TSE/"+str(row[0]),
+                          start_date="2000-04-01",
+                          end_date="2018-04-02")
+            p = join(CONFIG.outputDir, 'type17_' +
+                     str(type17), str(row[0])+'.csv')
+            # print(p)
+            data.to_csv(p)
+            pbar.update(1)
+        except Exception:
+            # print('id:{} has skipped. data does not exist.'.format(str(row[0])))
+            pbar.update(1)
+            continue
     pbar.close()
 
 
@@ -69,6 +78,7 @@ def getDataFrom17Type(type17):
     # Select by 17types
     typedJp1stBrNp = jp1stBrNp[jp1stBrNp[:, 4] == str(type17)]
     print(typedJp1stBrNp.shape)
-    getData(typedJp1stBrNp)
-
+    if not exists(join(CONFIG.outputDir, 'type17_'+str(type17))):
+        mkdir(join(CONFIG.outputDir, 'type17_'+str(type17)))
+    getData(typedJp1stBrNp, type17)
     print('ALL_TIME: ', round(time.time()-start, 2), ' sec')

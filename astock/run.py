@@ -20,7 +20,11 @@ def argsToConfig():
 
 def main():
     argsToConfig()
-    analyzeCsv.analyze('/home/minato/stockData/type17_1')
+    for i in range(10, 18):
+        print(i)
+        id17 = i
+        getStock.getDataFrom17Type(id17)
+        analyzeCsv.analyze('/home/minato/stockData/type17_'+str(id17))
 
 
 if __name__ == '__main__':
