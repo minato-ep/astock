@@ -2,6 +2,7 @@ import argparse
 import config
 import getStock
 import analyzeCsv
+from mutils import stockutil, fileutil, kaggleutil, graphutil
 CONFIG = config.CONFIG
 
 
@@ -20,11 +21,11 @@ def argsToConfig():
 
 def main():
     argsToConfig()
-    for i in range(10, 18):
-        print(i)
-        id17 = i
-        getStock.getDataFrom17Type(id17)
-        analyzeCsv.analyze('/home/minato/stockData/type17_'+str(id17))
+    fp = '/home/minato/stockData/type17_3/1433.csv'
+    df1 = fileutil.readCsvAsDf(fp, header=['Date', 'Open'])
+    graphutil.linePlot(df1, xName='Date', yNameList=['Open'])
+    df2 = stockutil.removeDiv(df1)
+    graphutil.linePlot(df2, xName='Date', yNameList=['Open'])
 
 
 if __name__ == '__main__':
